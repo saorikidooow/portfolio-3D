@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4f0e8" />
+  <!-- Titre et description remplacés au chargement par ceux de content/site.json -->
+  <title>Galerie de la Verrière — Portfolio</title>
+  <meta name="description" content="Portfolio artistique immersif : une galerie d'art classique en 3D à visiter librement." />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js est fourni localement dans vendor/ (aucun CDN requis) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/build/three.module.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene" aria-label="Galerie d'art en 3D"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <!-- Bandeau du mode aperçu (brouillon de l'administration) -->
+  <div id="preview-banner" hidden>Aperçu du brouillon — non publié · <a href="admin/">Retour à l'administration</a></div>
+
+  <!-- Interface de visite (volontairement discrète) -->
+  <div id="hud">
+    <div id="crosshair" aria-hidden="true"></div>
+    <div id="hover-caption" aria-hidden="true">
+      <span id="cap-title"></span>
+      <span id="cap-artist"></span>
+      <span class="cap-cta" data-text="hoverHint"></span>
+    </div>
+    <div id="controls-hint" aria-hidden="true">
+      <span><kbd>Z Q S D</kbd> / <kbd>W A S D</kbd> se déplacer</span>
+      <span><kbd>Souris</kbd> regarder</span>
+      <span><kbd>Clic</kbd> découvrir une œuvre</span>
+      <span><kbd>Maj</kbd> marcher plus vite</span>
+      <span><kbd>Échap</kbd> pause</span>
+    </div>
+    <div id="touch-hint" aria-hidden="true">Pouce gauche : marcher · glisser à droite : regarder · toucher une œuvre : la découvrir</div>
+    <button id="menu-btn" type="button" aria-label="Menu et informations"><span></span><span></span><span></span></button>
+    <div id="joystick" aria-hidden="true"><div id="joystick-knob"></div></div>
+  </div>
+
+  <!-- Écran de chargement -->
+  <section id="loader" class="screen is-visible" aria-live="polite">
+    <div class="loader-inner">
+      <p class="eyebrow" data-text="tagline">Portfolio artistique</p>
+      <h1 class="loader-title" data-text="name">Galerie de la Verrière</h1>
+      <div class="loader-track"><div id="loader-bar"></div></div>
+      <p class="loader-meta"><span id="loader-status">Préparation…</span><span id="loader-percent">0 %</span></p>
+    </div>
+  </section>
+
+  <!-- Écran d'accueil -->
+  <section id="welcome" class="screen" aria-labelledby="welcome-title">
+    <div class="welcome-panel">
+      <p class="eyebrow" data-text="eyebrow"></p>
+      <h1 id="welcome-title" data-text="name"></h1>
+      <div class="rule"></div>
+      <p class="welcome-text" data-text="welcomeText"></p>
+      <button id="enter-btn" class="btn-primary" type="button" data-text="enterLabel">Entrer dans le musée</button>
+      <ul class="site-links" data-links></ul>
+      <ul class="welcome-controls">
+        <li><kbd>Z Q S D</kbd><kbd>W A S D</kbd><span>Se déplacer</span></li>
+        <li><kbd>← →</kbd><kbd>↑ ↓</kbd><span>Tourner / avancer</span></li>
+        <li><kbd>Souris</kbd><span>Regarder autour de soi</span></li>
+        <li><kbd>Clic</kbd><span>Découvrir une œuvre</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Pause / menu -->
+  <section id="pause" class="screen" aria-labelledby="pause-title">
+    <div class="pause-card">
+      <p class="eyebrow" data-text="name"></p>
+      <h2 id="pause-title" data-text="pauseTitle"></h2>
+      <button id="resume-btn" class="btn-primary" type="button" data-text="resumeLabel"></button>
+      <ul class="site-links" data-links></ul>
+      <p class="pause-note">Z Q S D / W A S D pour marcher · la souris pour regarder · clic sur une toile pour la découvrir</p>
+    </div>
+  </section>
+
+  <!-- Fiche d'œuvre -->
+  <div id="artwork-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <article class="modal-panel">
+      <button id="modal-close" class="modal-close" type="button" aria-label="Fermer">&times;</button>
+      <figure class="modal-figure">
+        <div class="modal-frame"><img id="modal-image" alt="" /></div>
+      </figure>
+      <div class="modal-info">
+        <p id="modal-index" class="eyebrow"></p>
+        <h2 id="modal-title"></h2>
+        <p id="modal-artist" class="modal-artist"></p>
+        <dl class="modal-meta">
+          <div id="row-year"><dt>Année</dt><dd id="modal-year"></dd></div>
+          <div id="row-technique"><dt>Technique</dt><dd id="modal-technique"></dd></div>
+          <div id="row-dimensions"><dt>Dimensions</dt><dd id="modal-dimensions"></dd></div>
+        </dl>
+        <p id="modal-description" class="modal-description"></p>
+        <div class="modal-actions">
+          <a id="modal-link" class="btn-secondary" target="_blank" rel="noopener" hidden></a>
+          <a id="modal-document" class="btn-secondary" target="_blank" rel="noopener" hidden></a>
+          <button id="modal-back" class="btn-primary" type="button" data-text="backLabel"></button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div id="error" class="screen" role="alert"></div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
